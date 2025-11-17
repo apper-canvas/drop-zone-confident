@@ -1,8 +1,9 @@
-import { motion, AnimatePresence } from "framer-motion";
-import ApperIcon from "@/components/ApperIcon";
-import Button from "@/components/atoms/Button";
-import ProgressBar from "@/components/atoms/ProgressBar";
+import { AnimatePresence, motion } from "framer-motion";
+import React from "react";
 import { cn } from "@/utils/cn";
+import ApperIcon from "@/components/ApperIcon";
+import ProgressBar from "@/components/atoms/ProgressBar";
+import Button from "@/components/atoms/Button";
 
 const FileCard = ({ 
   file, 
@@ -78,6 +79,7 @@ const FileCard = ({
               transition={{ delay: 0.1 }}
             />
           ) : (
+) : (
             <motion.div
               className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center shadow-md"
               initial={{ opacity: 0, scale: 0.8 }}
@@ -85,7 +87,7 @@ const FileCard = ({
               transition={{ delay: 0.1 }}
             >
               <ApperIcon 
-                name={getFileIcon(file.type)} 
+                name={getFileIcon(file.type_c || file.type)} 
                 className="w-8 h-8 text-gray-600" 
               />
             </motion.div>
@@ -93,45 +95,43 @@ const FileCard = ({
         </div>
 
         {/* File Info */}
-        <div className="flex-1 min-w-0 space-y-3">
-          <div className="flex items-start justify-between">
-            <div className="min-w-0 flex-1">
-              <h4 className="text-lg font-semibold text-gray-900 truncate">
-                {file.name}
-              </h4>
-              <p className="text-sm text-gray-500">
-                {formatFileSize(file.size)} • {file.type}
-              </p>
-            </div>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-lg font-semibold text-gray-900 truncate">
+            {file.name_c || file.name}
+          </h4>
+          <p className="text-sm text-gray-500">
+            {formatFileSize(file.size_c || file.size)} • {file.type_c || file.type}
+          </p>
+        </div>
 
-            {/* Status & Actions */}
-            <div className="flex items-center space-x-2 ml-4">
-              <motion.div
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center shadow-lg",
-                  `bg-gradient-to-r ${getStatusColor(file.status)}`
-                )}
-                animate={file.status === "uploading" ? { rotate: 360 } : {}}
-                transition={{ duration: 2, repeat: file.status === "uploading" ? Infinity : 0, ease: "linear" }}
-              >
-                <ApperIcon 
-                  name={getStatusIcon(file.status)} 
-                  className="w-4 h-4 text-white" 
-                />
-              </motion.div>
+        {/* Status & Actions */}
+        <div className="flex items-center space-x-2">
+          <motion.div
+            className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center shadow-lg",
+              `bg-gradient-to-r ${getStatusColor(file.status)}`
+            )}
+            animate={file.status === "uploading" ? { rotate: 360 } : {}}
+            transition={{ duration: 2, repeat: file.status === "uploading" ? Infinity : 0, ease: "linear" }}
+          >
+            <ApperIcon 
+              name={getStatusIcon(file.status)} 
+              className="w-4 h-4 text-white" 
+            />
+          </motion.div>
 
-              {file.status !== "uploading" && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onRemove?.(file.id)}
-                  className="text-gray-400 hover:text-error p-2"
-                >
-                  <ApperIcon name="X" className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          </div>
+          {file.status !== "uploading" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRemove?.(file.id)}
+              className="text-gray-400 hover:text-error p-2"
+            >
+              <ApperIcon name="X" className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </div>
 
           {/* Progress Bar */}
           <AnimatePresence>

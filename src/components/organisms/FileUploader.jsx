@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import DropZone from "@/components/molecules/DropZone";
@@ -8,11 +8,43 @@ import ApperIcon from "@/components/ApperIcon";
 import Loading from "@/components/ui/Loading";
 import ErrorView from "@/components/ui/ErrorView";
 import Empty from "@/components/ui/Empty";
-
+import { useDispatch, useSelector } from "react-redux";
+import { setFiles, addFile, updateFile, removeFile } from "@/store/uploadSlice";
+import uploadedFileService from "@/services/api/uploadedFileService";
 const FileUploader = () => {
-  const [files, setFiles] = useState([]);
+const dispatch = useDispatch();
+  const { files } = useSelector(state => state.uploads);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Load files from database on component mount
+  useEffect(() => {
+    loadFiles();
+  }, []);
+
+  const loadFiles = async () => {
+    try {
+      const loadedFiles = await uploadedFileService.getAll();
+      if (loadedFiles && loadedFiles.length > 0) {
+        // Transform database records to UI format
+        const transformedFiles = loadedFiles.map(file => ({
+          id: file.Id,
+          name: file.name_c || file.Name,
+          size: file.size_c,
+          type: file.type_c,
+          preview: file.preview_c,
+          status: file.status_c || "success",
+          progress: 100,
+          error: null,
+          uploadedAt: file.CreatedOn,
+          databaseId: file.Id
+        }));
+        dispatch(setFiles(transformedFiles));
+      }
+    } catch (err) {
+      console.error("Error loading files:", err);
+    }
+  };
 
   // Generate unique ID for files
   const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -32,7 +64,7 @@ const FileUploader = () => {
   };
 
   // Handle new files added
-  const handleFilesAdded = useCallback(async (newFiles) => {
+const handleFilesAdded = useCallback(async (newFiles) => {
     setError(null);
     
     const filePromises = newFiles.map(async (file) => {
@@ -54,7 +86,7 @@ const FileUploader = () => {
 
     const processedFiles = await Promise.all(filePromises);
     
-    setFiles(prev => [...prev, ...processedFiles]);
+    processedFiles.forEach(file => dispatch(addFile(file)));
     
     // Auto-start upload
     setTimeout(() => {
@@ -62,45 +94,40 @@ const FileUploader = () => {
     }, 500);
     
     toast.info(`Added ${processedFiles.length} file${processedFiles.length > 1 ? "s" : ""} to queue`);
-  }, []);
+  }, [dispatch]);
 
   // Simulate file upload with progress
-  const startUpload = useCallback((fileId) => {
-    setFiles(prev => prev.map(file => 
-      file.id === fileId 
-        ? { ...file, status: "uploading", progress: 0 }
-        : file
-    ));
+const startUpload = useCallback((fileId) => {
+    const fileToUpload = files.find(f => f.id === fileId);
+    if (!fileToUpload) return;
+
+    dispatch(updateFile({ id: fileId, status: "uploading", progress: 0 }));
 
     // Simulate upload progress
     const interval = setInterval(() => {
-      setFiles(prev => prev.map(file => {
-        if (file.id === fileId && file.status === "uploading") {
+      dispatch(updateFile(prev => {
+        const file = files.find(f => f.id === fileId);
+        if (file && file.status === "uploading") {
           const newProgress = Math.min(file.progress + Math.random() * 20, 100);
           
           if (newProgress >= 100) {
             clearInterval(interval);
             
-            // Simulate success/failure (90% success rate)
+            // Save to database on success (90% success rate)
             const isSuccess = Math.random() > 0.1;
             
             setTimeout(() => {
-              setFiles(prev => prev.map(f => 
-                f.id === fileId 
-                  ? { 
-                      ...f, 
-                      status: isSuccess ? "success" : "error",
-                      progress: isSuccess ? 100 : f.progress,
-                      error: isSuccess ? null : "Network error occurred",
-                      uploadedAt: isSuccess ? new Date() : null
-                    }
-                  : f
-              ));
-              
               if (isSuccess) {
-                toast.success(`${file.name} uploaded successfully!`);
+                // Save to database
+                saveFileToDB(fileToUpload, fileId);
               } else {
-                toast.error(`Failed to upload ${file.name}`);
+                dispatch(updateFile({ 
+                  id: fileId, 
+                  status: "error", 
+                  progress: file.progress,
+                  error: "Network error occurred"
+                }));
+                toast.error(`Failed to upload ${fileToUpload.name}`);
               }
             }, 300);
             
@@ -112,25 +139,69 @@ const FileUploader = () => {
         return file;
       }));
     }, 200);
-  }, []);
+  }, [files, dispatch]);
+
+  const saveFileToDB = async (file, localId) => {
+    try {
+      const fileData = {
+        name_c: file.name,
+        size_c: file.size,
+        type_c: file.type,
+        preview_c: file.preview,
+        status_c: "success"
+      };
+
+      const savedFile = await uploadedFileService.create(fileData);
+      
+      if (savedFile) {
+        dispatch(updateFile({ 
+          id: localId, 
+          status: "success", 
+          progress: 100,
+          uploadedAt: new Date(),
+          databaseId: savedFile.Id
+        }));
+        toast.success(`${file.name} uploaded successfully!`);
+      } else {
+        throw new Error("Failed to save file");
+      }
+    } catch (err) {
+      console.error("Error saving file to database:", err);
+      dispatch(updateFile({ 
+        id: localId, 
+        status: "error", 
+        error: "Failed to save file to database"
+      }));
+      toast.error(`Failed to upload ${file.name}`);
+    }
+  };
 
   // Remove file from queue
-  const handleRemoveFile = useCallback((fileId) => {
-    setFiles(prev => prev.filter(file => file.id !== fileId));
-    toast.info("File removed from queue");
-  }, []);
+const handleRemoveFile = useCallback(async (fileId) => {
+    const file = files.find(f => f.id === fileId);
+    
+    // Delete from database if it exists
+    if (file?.databaseId) {
+      const deleted = await uploadedFileService.deleteFile(file.databaseId);
+      if (deleted) {
+        dispatch(removeFile(fileId));
+        toast.success("File deleted successfully");
+      } else {
+        toast.error("Failed to delete file");
+      }
+    } else {
+      dispatch(removeFile(fileId));
+      toast.info("File removed from queue");
+    }
+  }, [files, dispatch]);
 
   // Retry failed upload
-  const handleRetryUpload = useCallback((fileId) => {
-    setFiles(prev => prev.map(file => 
-      file.id === fileId 
-        ? { ...file, status: "idle", progress: 0, error: null }
-        : file
-    ));
+const handleRetryUpload = useCallback((fileId) => {
+    dispatch(updateFile({ id: fileId, status: "idle", progress: 0, error: null }));
     
     setTimeout(() => startUpload(fileId), 100);
     toast.info("Retrying upload...");
-  }, [startUpload]);
+  }, [dispatch, startUpload]);
 
   // Clear all files
   const handleClearAll = useCallback(() => {
@@ -139,7 +210,7 @@ const FileUploader = () => {
   }, []);
 
   // Get upload stats
-  const getUploadStats = () => {
+const getUploadStats = () => {
     const total = files.length;
     const completed = files.filter(f => f.status === "success").length;
     const failed = files.filter(f => f.status === "error").length;
