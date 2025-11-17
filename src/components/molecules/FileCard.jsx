@@ -56,146 +56,165 @@ const FileCard = ({
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 20, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -20, scale: 0.9 }}
-      whileHover={{ y: -2, shadow: "0 8px 32px rgba(0, 0, 0, 0.12)" }}
-      className={cn(
+    layout
+    initial={{
+        opacity: 0,
+        y: 20,
+        scale: 0.9
+    }}
+    animate={{
+        opacity: 1,
+        y: 0,
+        scale: 1
+    }}
+    exit={{
+        opacity: 0,
+        y: -20,
+        scale: 0.9
+    }}
+    whileHover={{
+        y: -2,
+        shadow: "0 8px 32px rgba(0, 0, 0, 0.12)"
+    }}
+    className={cn(
         "bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-premium border border-white/20",
         className
-      )}
-    >
-      <div className="flex items-start space-x-4">
+    )}>
+    <div className="flex items-start space-x-4">
         {/* File Icon/Preview */}
         <div className="flex-shrink-0">
-          {file.preview ? (
-            <motion.img
-              src={file.preview}
-              alt={file.name}
-              className="w-16 h-16 object-cover rounded-lg shadow-md"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1 }}
-            />
-          ) : (
-) : (
-            <motion.div
-              className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center shadow-md"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1 }}
-            >
-              <ApperIcon 
-                name={getFileIcon(file.type_c || file.type)} 
-                className="w-8 h-8 text-gray-600" 
-              />
-            </motion.div>
-          )}
+            {file.preview ? <motion.img
+                src={file.preview}
+                alt={file.name}
+                className="w-16 h-16 object-cover rounded-lg shadow-md"
+                initial={{
+                    opacity: 0,
+                    scale: 0.8
+                }}
+                animate={{
+                    opacity: 1,
+                    scale: 1
+                }}
+                transition={{
+                    delay: 0.1
+                }} /> : <motion.div
+                className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center shadow-md"
+                initial={{
+                    opacity: 0,
+                    scale: 0.8
+                }}
+                animate={{
+                    opacity: 1,
+                    scale: 1
+                }}
+                transition={{
+                    delay: 0.1
+                }}>
+                <ApperIcon
+                    name={getFileIcon(file.type_c || file.type)}
+                    className="w-8 h-8 text-gray-600" />
+            </motion.div>}
         </div>
-
         {/* File Info */}
         <div className="flex-1 min-w-0">
-          <h4 className="text-lg font-semibold text-gray-900 truncate">
-            {file.name_c || file.name}
-          </h4>
-          <p className="text-sm text-gray-500">
-            {formatFileSize(file.size_c || file.size)} • {file.type_c || file.type}
-          </p>
+            <h4 className="text-lg font-semibold text-gray-900 truncate">
+                {file.name_c || file.name}
+            </h4>
+            <p className="text-sm text-gray-500">
+                {formatFileSize(file.size_c || file.size)}• {file.type_c || file.type}
+            </p>
         </div>
-
         {/* Status & Actions */}
         <div className="flex items-center space-x-2">
-          <motion.div
-            className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center shadow-lg",
-              `bg-gradient-to-r ${getStatusColor(file.status)}`
-            )}
-            animate={file.status === "uploading" ? { rotate: 360 } : {}}
-            transition={{ duration: 2, repeat: file.status === "uploading" ? Infinity : 0, ease: "linear" }}
-          >
-            <ApperIcon 
-              name={getStatusIcon(file.status)} 
-              className="w-4 h-4 text-white" 
-            />
-          </motion.div>
-
-          {file.status !== "uploading" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onRemove?.(file.id)}
-              className="text-gray-400 hover:text-error p-2"
-            >
-              <ApperIcon name="X" className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-          {/* Progress Bar */}
-          <AnimatePresence>
-            {file.status === "uploading" && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-              >
-                <ProgressBar 
-                  progress={file.progress} 
-                  variant="primary"
-                  animated={true}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Error Message & Retry */}
-          <AnimatePresence>
-            {file.status === "error" && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-3"
-              >
-                <div className="bg-error/10 border border-error/20 rounded-lg p-3">
-                  <p className="text-sm text-error font-medium">
-                    {file.error || "Upload failed"}
-                  </p>
-                </div>
-                
-                {onRetry && (
-                  <Button
-                    variant="error"
-                    size="sm"
-                    onClick={() => onRetry(file.id)}
-                    className="w-full"
-                  >
-                    <ApperIcon name="RefreshCw" className="w-4 h-4 mr-2" />
-                    Retry Upload
-                  </Button>
+            <motion.div
+                className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center shadow-lg",
+                    `bg-gradient-to-r ${getStatusColor(file.status)}`
                 )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Success Message */}
-          <AnimatePresence>
-            {file.status === "success" && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center space-x-2 text-success"
-              >
-                <ApperIcon name="CheckCircle" className="w-4 h-4" />
-                <span className="text-sm font-medium">Upload complete</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                animate={file.status === "uploading" ? {
+                    rotate: 360
+                } : {}}
+                transition={{
+                    duration: 2,
+                    repeat: file.status === "uploading" ? Infinity : 0,
+                    ease: "linear"
+                }}>
+                <ApperIcon name={getStatusIcon(file.status)} className="w-4 h-4 text-white" />
+            </motion.div>
+            {file.status !== "uploading" && <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onRemove?.(file.id)}
+                className="text-gray-400 hover:text-error p-2">
+                <ApperIcon name="X" className="w-4 h-4" />
+            </Button>}
         </div>
-      </div>
-    </motion.div>
+    </div>
+    {/* Progress Bar */}
+    <AnimatePresence>
+        {file.status === "uploading" && <motion.div
+            initial={{
+                opacity: 0,
+                height: 0
+            }}
+            animate={{
+                opacity: 1,
+                height: "auto"
+            }}
+            exit={{
+                opacity: 0,
+                height: 0
+            }}>
+            <ProgressBar progress={file.progress} variant="primary" animated={true} />
+        </motion.div>}
+    </AnimatePresence>
+    {/* Error Message & Retry */}
+    <AnimatePresence>
+        {file.status === "error" && <motion.div
+            initial={{
+                opacity: 0,
+                height: 0
+            }}
+            animate={{
+                opacity: 1,
+                height: "auto"
+            }}
+            exit={{
+                opacity: 0,
+                height: 0
+            }}
+            className="space-y-3">
+            <div className="bg-error/10 border border-error/20 rounded-lg p-3">
+                <p className="text-sm text-error font-medium">
+                    {file.error || "Upload failed"}
+                </p>
+            </div>
+            {onRetry && <Button
+                variant="error"
+                size="sm"
+                onClick={() => onRetry(file.id)}
+                className="w-full">
+                <ApperIcon name="RefreshCw" className="w-4 h-4 mr-2" />Retry Upload
+                                  </Button>}
+        </motion.div>}
+    </AnimatePresence>
+    {/* Success Message */}
+    <AnimatePresence>
+        {file.status === "success" && <motion.div
+            initial={{
+                opacity: 0,
+                scale: 0.9
+            }}
+            animate={{
+                opacity: 1,
+                scale: 1
+            }}
+            className="flex items-center space-x-2 text-success">
+            <ApperIcon name="CheckCircle" className="w-4 h-4" />
+            <span className="text-sm font-medium">Upload complete</span>
+        </motion.div>}
+    </AnimatePresence>
+</motion.div>
   );
 };
 
